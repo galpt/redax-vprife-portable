@@ -17,6 +17,9 @@ $ProgressPreference = "SilentlyContinue"  # faster downloads
 
 $RepoRoot = Split-Path -Parent $PSCommandPath
 $BinDir    = Join-Path $RepoRoot "bin"
+
+# Force TLS 1.2 for GitHub downloads (PowerShell 5.1 defaults to TLS 1.0)
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $MpvDir    = Join-Path $BinDir "mpv"
 $TempDir   = Join-Path $RepoRoot "_bootstrap"
 
@@ -183,15 +186,42 @@ Ok "rife.dll placed in $vsPluginsDir"
 Section "4. mpv portable"
 # ═══════════════════════════════════════════════════════════════════════════════
 
-$mpvUrl = "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20250331/mpv-x86_64-v3-20250331-8491870.7z"
+# Resolve latest release and pick the x86_64-v3 build (AVX2/FMA — ideal for
+# modern CPUs paired with RTX 3050).  Fall back to plain x86_64 if v3 is absent.
+try {
+    $mpvApi = "https://api.github.com/repos/shinchiro/mpv-winbuild-cmake/releases/latest"
+    $mpvRelease = Invoke-RestMethod -Uri $mpvApi -UseBasicParsing
+    $mpvTag = $mpvRelease.tag_name
+
+    $mpvAsset = $mpvRelease.assets | Where-Object { $_.name -like "mpv-x86_64-v3-*" } | Select-Object -First 1
+    if (-not $mpvAsset) {
+        $mpvAsset = $mpvRelease.assets | Where-Object { $_.name -like "mpv-x86_64-*" -and $_.name -notlike "*-dev-*" -and $_.name -notlike "*-i686-*" } | Select-Object -First 1
+    }
+    if (-not $mpvAsset) { throw "No suitable mpv build found in release $mpvTag" }
+
+    $mpvUrl = $mpvAsset.browser_download_url
+    $mpvAssetName = $mpvAsset.name
+    Info "Latest mpv release: $mpvTag → $mpvAssetName"
+} catch {
+    # Hardcoded fallback if API is unreachable
+    $mpvTag = "20260421"
+    $mpvAssetName = "mpv-x86_64-v3-20260421-git-5921fe5.7z"
+    $mpvUrl = "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/$mpvTag/$mpvAssetName"
+    Warn "GitHub API unreachable — falling back to $mpvTag / $mpvAssetName"
+}
+
 $mpv7z  = Join-Path $tmp "mpv.7z"
 $mpvExtract = Join-Path $tmp "mpv-extract"
 
 if (Test-Path (Join-Path $MpvDir "mpv.exe")) {
     Ok "mpv already extracted at $MpvDir"
 } else {
-    Info "Downloading mpv portable ($mpvUrl)..."
-    Invoke-WebRequest -Uri $mpvUrl -OutFile $mpv7z -UseBasicParsing
+    Info "Downloading mpv (~32 MB)..."
+    try {
+        Invoke-WebRequest -Uri $mpvUrl -OutFile $mpv7z -UseBasicParsing -ErrorAction Stop
+    } catch {
+        throw "Failed to download mpv from $mpvUrl"
+    }
 
     $null = New-Item -ItemType Directory -Path $mpvExtract -Force
     Info "Extracting mpv..."
@@ -200,7 +230,6 @@ if (Test-Path (Join-Path $MpvDir "mpv.exe")) {
     # Find mpv.exe in the extraction
     $mpvExe = Get-ChildItem -Path $mpvExtract -Recurse -Filter "mpv.exe" | Select-Object -First 1
     if ($mpvExe) {
-        # Move the entire directory containing mpv.exe to bin\mpv\
         $srcMpvDir = $mpvExe.Directory.FullName
         if (Test-Path $MpvDir) { Remove-Item $MpvDir -Recurse -Force }
         Move-Item -Path $srcMpvDir -Destination $MpvDir -Force
