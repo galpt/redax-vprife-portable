@@ -167,7 +167,7 @@ Copy-Item -Path $modelsSrc.FullName -Destination $modelsDst -Recurse -Force
 $checkModels = @("rife-anime", "rife-v4.12_lite_ensembleFalse", "rife-v4.14_lite_ensembleFalse")
 $missing = @()
 foreach ($m in $checkModels) {
-    if (-not (Test-Path (Join-Path $modelsDst $m "flownet.param"))) { $missing += $m }
+    if (-not (Test-Path ([System.IO.Path]::Combine($modelsDst, $m, "flownet.param")))) { $missing += $m }
 }
 if ($missing.Count -gt 0) {
     Warn "Some model directories are missing: $($missing -join ', ')"
@@ -232,7 +232,7 @@ if (Test-Path $dstCfg) {
 
 # .vpy scripts
 foreach ($name in @("rife", "rife-720p", "rife-anime")) {
-    $src  = Join-Path $srcCfgDir "vapoursynth" "${name}.vpy"
+    $src  = [System.IO.Path]::Combine($srcCfgDir, "vapoursynth", "${name}.vpy")
     $dst  = Join-Path $mpvVSdir "${name}.vpy"
     Copy-Item -Path $src -Destination $dst -Force
 }

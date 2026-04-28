@@ -29,7 +29,7 @@ param(
 )
 
 $RepoRoot = Split-Path -Parent $PSCommandPath
-$MpvDir   = Join-Path $RepoRoot "bin" "mpv"
+$MpvDir   = [System.IO.Path]::Combine($RepoRoot, "bin", "mpv")
 $MpvExe   = Join-Path $MpvDir "mpv.exe"
 
 # ── Validate ─────────────────────────────────────────────────────────────────
