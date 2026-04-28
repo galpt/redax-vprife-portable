@@ -231,8 +231,10 @@ if (Test-Path (Join-Path $MpvDir "mpv.exe")) {
     $mpvExe = Get-ChildItem -Path $mpvExtract -Recurse -Filter "mpv.exe" | Select-Object -First 1
     if ($mpvExe) {
         $srcMpvDir = $mpvExe.Directory.FullName
-        if (Test-Path $MpvDir) { Remove-Item $MpvDir -Recurse -Force }
-        Move-Item -Path $srcMpvDir -Destination $MpvDir -Force
+        # Move-Item cannot create intermediate parent directories; use copy + delete instead
+        $null = New-Item -ItemType Directory -Path $MpvDir -Force
+        Copy-Item -Path "$srcMpvDir\*" -Destination $MpvDir -Recurse -Force
+        Remove-Item -Path $srcMpvDir -Recurse -Force
         Ok "mpv extracted to $MpvDir"
     } else {
         throw "mpv.exe not found in downloaded archive"
