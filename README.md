@@ -46,15 +46,20 @@ on any video file.
 
 ```
 redax-vprife-portable/
+├── LICENSE               MIT license
 ├── README.md
-├── bootstrap.ps1       One-time setup: downloads mpv, VapourSynth, RIFE plugin
-├── play.ps1            Launch mpv with RIFE
+├── bootstrap.ps1         One-time setup: downloads mpv, VapourSynth, RIFE plugin
+├── play.ps1              Launch mpv with RIFE
 ├── config/
-│   ├── mpv.conf        Optimised mpv configuration
-│   └── vapoursynth/    VapourSynth RIFE scripts
+│   ├── mpv.conf          Optimised mpv configuration
+│   └── vapoursynth/      VapourSynth RIFE scripts
 └── scripts/
-    └── diagnose.ps1    Installation health check
+    └── diagnose.ps1      Installation health check
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE).
 
 ## Acknowledgements
 
